@@ -72,11 +72,11 @@ void ModbusClient::set_destination_rtu_address(uint8_t address) {
     nmbs_set_destination_rtu_address(&nmbs, address);
 }
 
-nmbs_error ModbusClient::read_coils(uint16_t address, uint16_t quantity, uint8_t *coils_out) {
+nmbs_error ModbusClient::read_coils(uint16_t address, uint16_t quantity, nmbs_bitfield coils_out) {
     return nmbs_read_coils(&nmbs,address,quantity,coils_out);
 }
 
-nmbs_error ModbusClient::read_discrete_inputs(uint16_t address, uint16_t quantity, uint8_t *inputs_out) {
+nmbs_error ModbusClient::read_discrete_inputs(uint16_t address, uint16_t quantity, nmbs_bitfield inputs_out) {
     return nmbs_read_discrete_inputs(&nmbs, address, quantity, inputs_out);
 }
 
@@ -96,7 +96,7 @@ nmbs_error ModbusClient::write_single_register(uint16_t address, uint16_t value)
     return nmbs_write_single_register(&nmbs, address, value);
 }
 
-nmbs_error ModbusClient::write_multiple_coils(uint16_t address, uint16_t quantity, const uint8_t *coils) {
+nmbs_error ModbusClient::write_multiple_coils(uint16_t address, uint16_t quantity, const nmbs_bitfield coils) {
     return nmbs_write_multiple_coils(&nmbs, address, quantity, coils);
 }
 
