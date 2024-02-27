@@ -174,7 +174,7 @@ int main() {
             switch (mqtt_qos) {
                 case 0:
                     // Send and receive QoS 0 message
-                    sprintf(buf, "Msg nr: %s QoS 0 message", ++msg_count);
+                    sprintf(buf, "Msg nr: %d QoS 0 message", ++msg_count);
                     printf("%s\n", buf);
                     message.qos = MQTT::QOS0;
                     message.payloadlen = strlen(buf) + 1;
@@ -184,7 +184,7 @@ int main() {
                     break;
                 case 1:
                     // Send and receive QoS 1 message
-                    sprintf(buf, "Msg nr: %s QoS 1 message", ++msg_count);
+                    sprintf(buf, "Msg nr: %d QoS 1 message", ++msg_count);
                     printf("%s\n", buf);
                     message.qos = MQTT::QOS1;
                     message.payloadlen = strlen(buf) + 1;
@@ -195,7 +195,7 @@ int main() {
 #if MQTTCLIENT_QOS2
                     case 2:
                         // Send and receive QoS 2 message
-                        sprintf(buf, "Msg nr: %s QoS 2 message", ++msg_count);
+                        sprintf(buf, "Msg nr: %d QoS 2 message", ++msg_count);
                         printf("%s\n", buf);
                         message.qos = MQTT::QOS2;
                         message.payloadlen = strlen(buf) + 1;
