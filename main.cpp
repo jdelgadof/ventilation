@@ -26,6 +26,8 @@
 #endif
 
 #define BAUD_RATE 9600
+#define STOP_BITS 1 // for simulator
+//#define STOP_BITS 2 // for real system
 
 #define USE_MODBUS
 #define USE_MQTT
@@ -106,7 +108,8 @@ int main() {
 
 #ifdef USE_MQTT
     //IPStack ipstack("SSID", "PASSWORD"); // example
-    IPStack ipstack("KME662", "SmartIot"); // example
+    //IPStack ipstack("KME662", "SmartIot"); // example
+    IPStack ipstack("SmartIotMQTT", "SmartIot"); // example
     auto client = MQTT::Client<IPStack, Countdown>(ipstack);
 
     int rc = ipstack.connect("192.168.1.10", 1883);
@@ -140,10 +143,14 @@ int main() {
 #endif
 
 #ifdef USE_MODBUS
-    auto uart{std::make_shared<PicoUart>(UART_NR, UART_TX_PIN, UART_RX_PIN, BAUD_RATE)};
+    auto uart{std::make_shared<PicoUart>(UART_NR, UART_TX_PIN, UART_RX_PIN, BAUD_RATE, STOP_BITS)};
     auto rtu_client{std::make_shared<ModbusClient>(uart)};
     ModbusRegister rh(rtu_client, 241, 256);
     auto modbus_poll = make_timeout_time_ms(3000);
+    ModbusRegister produal(rtu_client, 1, 0);
+    produal.write(100);
+    sleep_ms((100));
+    produal.write(100);
 #endif
 
     while (true) {
