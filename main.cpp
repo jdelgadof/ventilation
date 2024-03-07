@@ -23,6 +23,11 @@
 #define UART_NR 1
 #define UART_TX_PIN 4
 #define UART_RX_PIN 5
+#define ROT_A_PIN 10
+#define ROT_B_PIN 11
+#define ROT_SW_PIN 12
+int initial_speed = 0;  // Initial speed 0% (0-1000)
+
 #endif
 
 #define BAUD_RATE 9600
@@ -30,7 +35,7 @@
 //#define STOP_BITS 2 // for real system
 
 #define USE_MODBUS
-#define USE_MQTT
+//#define USE_MQTT
 #define USE_SSD1306
 
 
@@ -57,9 +62,24 @@ void messageArrived(MQTT::MessageData &md) {
     printf("Message arrived: qos %d, retained %d, dup %d, packetid %d\n",
            message.qos, message.retained, message.dup, message.id);
     printf("Payload %s\n", (char *) message.payload);
+
+}
+//check this!!
+static void a_interrupt_handler(uint gpio, uint32_t event) {
+    if(gpio == ROT_A_PIN && gpio_get(ROT_B_PIN)){
+        initial_speed -= 25;
+        if (initial_speed <= 0) {
+            initial_speed = 0;
+        }
+    }else{
+        initial_speed += 25;
+        if (initial_speed >= 1000) {
+            initial_speed = 1000;
+        }
+    }
 }
 
-static const char *topic = "test-topic";
+static const char *topic = "jef/controller/settings"; //topics
 
 int main() {
 
@@ -73,6 +93,17 @@ int main() {
     gpio_init(button);
     gpio_set_dir(button, GPIO_IN);
     gpio_pull_up(button);
+    //initialize rotary encoder
+    gpio_init(ROT_A_PIN);
+    gpio_init(ROT_B_PIN);
+    gpio_init(ROT_SW_PIN);
+
+    gpio_set_dir(ROT_A_PIN, GPIO_IN);
+    gpio_set_dir(ROT_B_PIN, GPIO_IN);
+    gpio_set_dir(ROT_SW_PIN, GPIO_IN);
+    gpio_set_pulls(ROT_SW_PIN, true, false);  // Enable pull-up for the switch
+
+    gpio_set_irq_enabled_with_callback(ROT_A_PIN, GPIO_IRQ_EDGE_RISE, true, &a_interrupt_handler);
 
     // Initialize chosen serial port
     stdio_init_all();
@@ -112,7 +143,7 @@ int main() {
     IPStack ipstack("SmartIotMQTT", "SmartIot"); // example
     auto client = MQTT::Client<IPStack, Countdown>(ipstack);
 
-    int rc = ipstack.connect("192.168.1.10", 1883);
+    int rc = ipstack.connect("192.168.1.182", 1883); //192.168.1.10 for real test
     if (rc != 1) {
         printf("rc from TCP connect is %d\n", rc);
     }
@@ -146,20 +177,26 @@ int main() {
     auto uart{std::make_shared<PicoUart>(UART_NR, UART_TX_PIN, UART_RX_PIN, BAUD_RATE, STOP_BITS)};
     auto rtu_client{std::make_shared<ModbusClient>(uart)};
     ModbusRegister rh(rtu_client, 241, 256);
+    ModbusRegister temperature(rtu_client, 241, 257);
+    ModbusRegister co2(rtu_client, 240, 0);
     auto modbus_poll = make_timeout_time_ms(3000);
     ModbusRegister produal(rtu_client, 1, 0);
-    produal.write(100);
+    produal.write(500);
     sleep_ms((100));
     produal.write(100);
 #endif
 
     while (true) {
 #ifdef USE_MODBUS
+
         if (time_reached(modbus_poll)) {
             gpio_put(led_pin, !gpio_get(led_pin)); // toggle  led
             modbus_poll = delayed_by_ms(modbus_poll, 3000);
             printf("RH=%5.1f%%\n", rh.read() / 10.0);
+            printf("Temperature=%5.1f C\n", temperature.read() / 10.0);
+            printf("co2=%5.1f ppm\n", co2.read()/10.0);
         }
+        produal.write(initial_speed);
 #endif
 #ifdef USE_MQTT
         if (time_reached(mqtt_send)) {
@@ -177,7 +214,7 @@ int main() {
             MQTT::Message message;
             message.retained = false;
             message.dup = false;
-            message.payload = (void *) buf;
+            message.payload = (void *) buf; //
             switch (mqtt_qos) {
                 case 0:
                     // Send and receive QoS 0 message
